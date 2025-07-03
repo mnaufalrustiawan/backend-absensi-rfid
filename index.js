@@ -1,4 +1,5 @@
 require("dotenv").config();
+const serverless = require('serverless-http'); 
 const express = require("express");
 const cors = require("cors");
 const app = express();
@@ -9,7 +10,6 @@ const adminRoute = require("./routes/admin");
 const siswaRoute = require("./routes/siswa");
 const userRoute = require("./routes/user");
 const kelasRoute = require("./routes/kelas");
-const serverless = require("serverless-http");
 
 app.use(cors());
 app.use(express.json());
@@ -30,4 +30,5 @@ app.listen(port, () => {
   console.log(`🚀 Server berjalan di http://localhost:${port}`);
 });
 // 🔁 Ganti listen() dengan export untuk serverless
-module.exports = serverless(app);
+module.exports = app;
+module.exports.handler = serverless(app); 
