@@ -26,5 +26,5 @@ app.get("/", (req, res) => {
   res.send("API absensi aktif!");
 });
 
-
-module.exports.handler = serverless(app);
+module.exports = app; // optional, untuk testing lokal
+module.exports.handler = serverless(app); // ✅ ini yang dibutuhkan Vercel
