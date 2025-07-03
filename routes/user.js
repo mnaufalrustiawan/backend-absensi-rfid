@@ -21,7 +21,6 @@ router.post("/tambah-user", async (req, res) => {
 
 router.put("/edit-user", async (req, res) => {
    try{
-
        const {id} = req.query;
        const { name, email, passwordbaru, passwordsebelumnya } = req.body;
        const user = await User.findByPk(id);
