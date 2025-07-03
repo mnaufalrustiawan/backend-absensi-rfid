@@ -9,6 +9,8 @@ const adminRoute = require("./routes/admin");
 const siswaRoute = require("./routes/siswa");
 const userRoute = require("./routes/user");
 const kelasRoute = require("./routes/kelas");
+const serverless = require("serverless-http");
+
 
 app.use(cors());
 app.use(express.json());
