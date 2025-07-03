@@ -30,5 +30,5 @@ app.listen(port, () => {
   console.log(`🚀 Server berjalan di http://localhost:${port}`);
 });
 
-module.exports = app;
-module.exports.handler = serverless(app); 
+const serverless = require("serverless-http");
+module.exports.handler = serverless(app);
