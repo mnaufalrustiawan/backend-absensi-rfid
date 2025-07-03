@@ -25,6 +25,8 @@ app.get("/", (req, res) => {
   res.send("API absensi aktif!");
 });
 
-app.listen(port, () => {
-  console.log(`🚀 Server berjalan di http://localhost:${port}`);
-});
+// app.listen(port, () => {
+//   console.log(`🚀 Server berjalan di http://localhost:${port}`);
+// });
+// 🔁 Ganti listen() dengan export untuk serverless
+module.exports = serverless(app);
