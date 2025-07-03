@@ -26,9 +26,6 @@ app.get("/", (req, res) => {
   res.send("API absensi aktif!");
 });
 
-app.listen(port, () => {
-  console.log(`🚀 Server berjalan di http://localhost:${port}`);
-});
 
 const serverless = require("serverless-http");
 module.exports.handler = serverless(app);
