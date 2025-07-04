@@ -23,6 +23,10 @@ module.exports = {
         allowNull: false,
         unique: true
       },
+      no_wa_ortu:{
+        type: Sequelize.STRING,
+        allowNull: true
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE

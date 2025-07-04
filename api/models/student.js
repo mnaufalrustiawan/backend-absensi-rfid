@@ -27,7 +27,8 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
         unique: true
-      }
+      },
+      no_wa_ortu: DataTypes.STRING
     },
     {
       sequelize,

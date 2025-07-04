@@ -2,8 +2,37 @@ const express = require("express");
 const router = express.Router();
 const { Attendance, Student, Setting } = require("../models");
 const { authMiddleware, authorize } = require("../middleware/auth");
+const axios = require("axios");
+const FormData = require("form-data");
 
 
+const WHAPIFY_URL = "https://whapify.id/api/send/whatsapp";
+const WHAPIFY_SECRET = process.env.WHAPIFY_SECRET || "YOUR_API_SECRET";
+const WHAPIFY_ACCOUNT = process.env.WHAPIFY_ACCOUNT || "WHATSAPP_ACCOUNT_UNIQUE_ID";
+
+// 📲 Fungsi kirim WhatsApp ke orang tua
+// Fungsi kirim WhatsApp via Whapify (form-data)
+async function kirimWhatsapp(nomor, pesan) {
+  const form = new FormData();
+  form.append("secret", WHAPIFY_SECRET);
+  form.append("account", WHAPIFY_ACCOUNT);
+  form.append("recipient", nomor); // format: 628xxxxxxx
+  form.append("type", "text");
+  form.append("message", pesan);
+
+  try {
+    const response = await axios.post(WHAPIFY_URL, form, {
+      headers: form.getHeaders(),
+    });
+    console.log("✅ WA Terkirim:", response.data);
+  } catch (error) {
+    if (error.response) {
+      console.error("❌ Gagal kirim WA:", error.response.status, error.response.data);
+    } else {
+      console.error("❌ Error:", error.message);
+    }
+  }
+}
 
 router.post("/absen-siswa", async (req, res) => {
   const { card_uid } = req.body;
@@ -76,6 +105,9 @@ router.post("/absen-siswa", async (req, res) => {
       status_absen: "absenmasuk",
       absenmasuk: timeNow,
     });
+
+    const pesan = `📢 Halo, anak Anda *${student.name}* telah absen *masuk* pada pukul ${timeNow}.`;
+    await kirimWhatsapp(student.no_wa_ortu, pesan);
 
     return res.status(201).json({
       message: `${student.name} berhasil absen masuk.`,
