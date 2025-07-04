@@ -15,11 +15,10 @@ module.exports = (sequelize, DataTypes) => {
   }
   Setting.init({
     status_manual: DataTypes.BOOLEAN,
-    status_otomatis: DataTypes.BOOLEAN,
-    absenmasuk_start: DataTypes.TIME,
-    absenmasuk_end: DataTypes.TIME,
-    absenkeluar_start: DataTypes.TIME,
-    absenkeluar_end: DataTypes.TIME
+    jam_masuk: DataTypes.TIME,
+    jam_keluar: DataTypes.TIME,
+    batas_absen_masuk: DataTypes.TIME,
+    batas_absen_keluar: DataTypes.TIME
   }, {
     sequelize,
     modelName: 'Setting',

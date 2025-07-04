@@ -5,11 +5,10 @@ module.exports = {
     await queryInterface.bulkInsert('Settings', [
       {
         status_manual: true,
-        status_otomatis: true,
-        absenmasuk_start: '07:00',
-        absenmasuk_end: '08:00',
-        absenkeluar_start: '13:00',
-        absenkeluar_end: '14:00',
+        jam_masuk: '08:00:00',
+        jam_keluar: '16:00:00',
+        batas_absen_masuk: '08:30:00',
+        batas_absen_keluar: '17:30:00',
         createdAt: new Date(),
         updatedAt: new Date()
       }

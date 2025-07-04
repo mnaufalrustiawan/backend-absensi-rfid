@@ -14,21 +14,21 @@ module.exports = {
         defaultValue: false
 
       },
-      status_otomatis: {
-        type: Sequelize.BOOLEAN,
-        defaultValue: false
+      jam_masuk: {
+        type: Sequelize.TIME,
+        allowNull: true
       },
-      absenmasuk_start: {
-        type: Sequelize.TIME
+      jam_keluar: {
+        type: Sequelize.TIME,
+        allowNull: true
       },
-      absenmasuk_end: {
-        type: Sequelize.TIME
+      batas_absen_masuk: {
+        type: Sequelize.TIME,
+        allowNull: true
       },
-      absenkeluar_start: {
-        type: Sequelize.TIME
-      },
-      absenkeluar_end: {
-        type: Sequelize.TIME
+      batas_absen_keluar: {
+        type: Sequelize.TIME,
+        allowNull: true
       },
       createdAt: {
         allowNull: false,

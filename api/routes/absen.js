@@ -37,6 +37,8 @@ async function kirimWhatsapp(nomor, pesan) {
 router.post("/absen-siswa", async (req, res) => {
   const { card_uid } = req.body;
 
+  const timeNow = req.timeNow; // ✅ Dari middleware
+  const today = req.today;     // ✅ Dari middleware
   try {
     // 🔍 Cek siswa berdasarkan UID kartu
     const student = await Student.findOne({ where: { card_uid } });
@@ -44,36 +46,22 @@ router.post("/absen-siswa", async (req, res) => {
       return res.status(404).json({ message: "Siswa tidak ditemukan" });
     }
 
-    // 🔍 Cek setting absen (hanya satu baris, misalnya ID = 1)
+    // 🔍 Ambil pengaturan absen
     const setting = await Setting.findOne({ where: { id: 1 } });
     if (!setting) {
       return res.status(500).json({ message: "Pengaturan absen tidak ditemukan" });
     }
 
-    // ❌ Kalau dua-duanya off → tolak absen
-    if (!setting.status_manual && !setting.status_otomatis) {
-      return res.status(400).json({ message: "Absen belum diaktifkan" });
-    }
 
-    // 🕒 Ambil waktu sekarang dalam WIB (UTC+7)
-    const nowUTC = new Date();
-    const nowWIB = new Date(nowUTC.getTime() + (7 * 60 * 60 * 1000)); // UTC+7
-    const timeNow = nowWIB.toTimeString().slice(0, 8); // HH:MM:SS
-    const today = nowWIB.toISOString().slice(0, 10);   // YYYY-MM-DD
 
-    // ⏰ Validasi waktu hanya kalau otomatis aktif dan manual tidak aktif
-    if (setting.status_otomatis && !setting.status_manual) {
-      const isCheckinTime =
-        timeNow >= setting.absenmasuk_start && timeNow <= setting.absenmasuk_end;
-      const isCheckoutTime =
-        timeNow >= setting.absenkeluar_start && timeNow <= setting.absenkeluar_end;
-
-      if (!isCheckinTime && !isCheckoutTime) {
-        return res.status(400).json({ message: "Bukan waktu absensi otomatis" });
-      }
-    }
-
-    // 🔄 Cek apakah sudah pernah absen hari ini
+    const toTimeString = (value) => {
+      if (typeof value === 'string') return value;
+      return value.toTimeString().slice(0, 8); // kalau dia Date object
+    };
+    const jamkeluar = setting ? toTimeString(setting.jam_keluar) : null;
+    const batasabsenmasuk = setting ? toTimeString(setting.batas_absen_masuk) : null;
+    const batasabsenkeluar = setting ? toTimeString(setting.batas_absen_keluar) : null;
+    // 🔄 Cek apakah sudah absen hari ini
     const existingAttendance = await Attendance.findOne({
       where: {
         studentId: student.id,
@@ -81,14 +69,26 @@ router.post("/absen-siswa", async (req, res) => {
       },
     });
 
-    // 🔁 Jika sudah ada, proses absen keluar
+
+    // 🔁 Jika sudah absen masuk → proses absen keluar
     if (existingAttendance) {
       if (existingAttendance.status_absen === "absenmasuk") {
-        existingAttendance.absenkeluar = timeNow;
+        console.log("✅ timeNow:", timeNow);
+        console.log("✅ jamkeluar:", jamkeluar);
+        console.log("✅ batasabsenkeluar:", batasabsenkeluar);
+        if (timeNow < jamkeluar) {
+          return res.status(400).json({ message: "Belum waktunya absen pulang." });
+        }
+        if (timeNow > batasabsenkeluar) {
+          return res.status(400).json({ message: "Waktu absen pulang telah berakhir." });
+        }
+
+        // 📝 Update status menjadi absen keluar
         existingAttendance.status_absen = "absenkeluar";
+        existingAttendance.absenkeluar = timeNow;
         await existingAttendance.save();
 
-        // 🔔 Kirim notifikasi absen keluar
+        // 🔔 Notifikasi pulang
         const pesan = `📢 Halo, anak Anda *${student.name}* telah absen *pulang* pada pukul ${timeNow}.`;
         await kirimWhatsapp(student.no_wa_ortu, pesan);
 
@@ -98,11 +98,16 @@ router.post("/absen-siswa", async (req, res) => {
         });
       }
 
-      // ✅ Sudah absen masuk dan keluar
+      // ✅ Sudah absen lengkap
       return res.status(400).json({ message: "Siswa sudah absen lengkap hari ini." });
     }
 
-    // ➕ Belum absen → catat absen masuk
+    // ❌ Cek apakah sudah lewat batas absen masuk
+    if (timeNow > batasabsenmasuk) {
+      return res.status(400).json({ message: "Sudah melewati batas waktu absen masuk." });
+    }
+
+    // ➕ Catat absen masuk
     const newAttendance = await Attendance.create({
       studentId: student.id,
       date: today,
@@ -112,10 +117,18 @@ router.post("/absen-siswa", async (req, res) => {
       absenmasuk: timeNow,
     });
 
-    // 🔔 Kirim notifikasi absen masuk
+    // 🔔 Notifikasi masuk
+    if (timeNow > setting.jam_masuk) {
+      const pesan = `📢 Halo, anak Anda *${student.name}* terlambat absen *masuk* pada pukul ${timeNow}.`;
+      await kirimWhatsapp(student.no_wa_ortu, pesan);
+      return res.status(201).json({
+        message: `${student.name} terlambat absen masuk.`,
+        attendance: newAttendance,
+      });
+    }
+
     const pesan = `📢 Halo, anak Anda *${student.name}* telah absen *masuk* pada pukul ${timeNow}.`;
     await kirimWhatsapp(student.no_wa_ortu, pesan);
-
     return res.status(201).json({
       message: `${student.name} berhasil absen masuk.`,
       attendance: newAttendance,
@@ -131,6 +144,49 @@ router.post("/absen-siswa", async (req, res) => {
 });
 
 
+router.post("/generate-absen-harian", async (req, res) => {
+  try {
+    // Ambil tanggal hari ini (WIB)
+    const nowUTC = new Date();
+    const nowWIB = new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000);
+    const today = nowWIB.toISOString().slice(0, 10);
+
+    // Ambil semua siswa
+    const allStudents = await Student.findAll();
+
+    // Cek siswa yang belum punya absen hari ini
+    const alreadyAbsen = await Attendance.findAll({
+      where: { date: today },
+      attributes: ['studentId'],
+    });
+    const alreadyAbsenIds = alreadyAbsen.map((a) => a.studentId);
+
+    // Filter siswa yang belum absen
+    const studentsToCreate = allStudents.filter(
+      (student) => !alreadyAbsenIds.includes(student.id)
+    );
+
+    // Generate absen alpha
+    const newAttendances = studentsToCreate.map((student) => ({
+      studentId: student.id,
+      date: today,
+      keterangan: "alpha",
+    }));
+
+    // Simpan ke database
+    await Attendance.bulkCreate(newAttendances);
+
+    return res.status(201).json({
+      message: `${newAttendances.length} data absen default (alpha) berhasil dibuat.`,
+      data: newAttendances,
+    });
+  } catch (err) {
+    console.error("Error generate absen:", err);
+    res.status(500).json({ message: "Gagal generate absen default", error: err.message });
+  }
+});
+
+
 router.use(authMiddleware);
 router.use(authorize('admin', 'operator'));
 
@@ -141,7 +197,7 @@ router.get("/setting", async (req, res) => {
 
 router.put("/edit-setting", async(req,res) => {
   try {
-    const { status_manual, status_otomatis, absenmasuk_start, absenmasuk_end, absenkeluar_start, absenkeluar_end } = req.body;
+    const { status_manual, status_otomatis, jam_masuk, jam_keluar, batas_absen_masuk, batas_absen_keluar } = req.body;
     const setting = await Setting.findByPk(1  );
     if (!setting) {
       return res.status(404).json({ message: "Pengaturan tidak ditemukan" });
@@ -152,17 +208,17 @@ router.put("/edit-setting", async(req,res) => {
     if (status_otomatis) {
       setting.status_otomatis = status_otomatis;
     }
-    if (absenmasuk_start) {
-      setting.absenmasuk_start = absenmasuk_start;
+    if (jam_masuk) {
+      setting.jam_masuk = jam_masuk;
     }
-    if (absenmasuk_end) {
-      setting.absenmasuk_end = absenmasuk_end;
+    if (jam_keluar) {
+      setting.jam_keluar = jam_keluar;
     }
-    if (absenkeluar_start) {
-      setting.absenkeluar_start = absenkeluar_start;
+    if (batas_absen_masuk) {
+      setting.batas_absen_masuk = batas_absen_masuk;
     }
-    if (absenkeluar_end) {
-      setting.absenkeluar_end = absenkeluar_end;
+    if (batas_absen_keluar) {
+      setting.batas_absen_keluar = batas_absen_keluar;
     }
     await setting.save();
     res.status(200).json({ message: "Pengaturan berhasil diperbarui", setting  });
@@ -172,5 +228,8 @@ router.put("/edit-setting", async(req,res) => {
     
   }
 });
+
+
+
 
 module.exports = router;
