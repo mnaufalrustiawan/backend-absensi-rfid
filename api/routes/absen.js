@@ -10,6 +10,7 @@ const WHAPIFY_URL = "https://whapify.id/api/send/whatsapp";
 const WHAPIFY_SECRET = process.env.WHAPIFY_SECRET || "YOUR_API_SECRET";
 const WHAPIFY_ACCOUNT = process.env.WHAPIFY_ACCOUNT || "WHATSAPP_ACCOUNT_UNIQUE_ID";
 
+
 // 📲 Fungsi kirim WhatsApp ke orang tua
 // Fungsi kirim WhatsApp via Whapify (form-data)
 async function kirimWhatsapp(nomor, pesan) {
@@ -36,9 +37,10 @@ async function kirimWhatsapp(nomor, pesan) {
 
 router.post("/absen-siswa", async (req, res) => {
   const { card_uid } = req.body;
+  const today = req.today; 
+  const timeNow = req.timeNow;
 
-  const timeNow = req.timeNow; // ✅ Dari middleware
-  const today = req.today;     // ✅ Dari middleware
+
   try {
     // 🔍 Cek siswa berdasarkan UID kartu
     const student = await Student.findOne({ where: { card_uid } });
@@ -74,8 +76,6 @@ router.post("/absen-siswa", async (req, res) => {
     if (existingAttendance) {
       if (existingAttendance.status_absen === "absenmasuk") {
         console.log("✅ timeNow:", timeNow);
-        console.log("✅ jamkeluar:", jamkeluar);
-        console.log("✅ batasabsenkeluar:", batasabsenkeluar);
         if (timeNow < jamkeluar) {
           return res.status(400).json({ message: "Belum waktunya absen pulang." });
         }
@@ -146,10 +146,9 @@ router.post("/absen-siswa", async (req, res) => {
 
 router.post("/generate-absen-harian", async (req, res) => {
   try {
-    // Ambil tanggal hari ini (WIB)
-    const nowUTC = new Date();
-    const nowWIB = new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000);
-    const today = nowWIB.toISOString().slice(0, 10);
+    const today = req.today; 
+    const timeNow = req.timeNow;
+
 
     // Ambil semua siswa
     const allStudents = await Student.findAll();
@@ -197,6 +196,7 @@ router.get("/setting", async (req, res) => {
 
 router.put("/edit-setting", async(req,res) => {
   try {
+    
     const { status_manual, status_otomatis, jam_masuk, jam_keluar, batas_absen_masuk, batas_absen_keluar } = req.body;
     const setting = await Setting.findByPk(1  );
     if (!setting) {
