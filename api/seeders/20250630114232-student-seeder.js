@@ -19,7 +19,7 @@ module.exports = {
         nis: "654321",
         classId: 2, // sesuai ID Class "X IPA 2"
         card_uid: "2",
-        no_wa_ortu: "6285889251312",
+        no_wa_ortu: "6285326831850",
         createdAt: new Date(),
         updatedAt: new Date(),
       },
