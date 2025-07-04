@@ -86,6 +86,10 @@ router.post("/absen-siswa", async (req, res) => {
         existingAttendance.status_absen = "absenkeluar";
         await existingAttendance.save();
 
+        // 🔔 Kirim notifikasi absen keluar
+        const pesan = `📢 Halo, anak Anda *${student.name}* telah absen *pulang* pada pukul ${timeNow}.`;
+        await kirimWhatsapp(student.no_wa_ortu, pesan);
+
         return res.status(200).json({
           message: `${student.name} berhasil absen keluar.`,
           attendance: existingAttendance,
