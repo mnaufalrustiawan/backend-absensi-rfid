@@ -55,9 +55,11 @@ router.post("/absen-siswa", async (req, res) => {
       return res.status(400).json({ message: "Absen belum diaktifkan" });
     }
 
-    const now = new Date();
-    const timeNow = now.toTimeString().slice(0, 8);     // HH:MM
-    const today = now.toISOString().slice(0, 10);       // YYYY-MM-DD
+    // 🕒 Ambil waktu sekarang dalam WIB (UTC+7)
+    const nowUTC = new Date();
+    const nowWIB = new Date(nowUTC.getTime() + (7 * 60 * 60 * 1000)); // UTC+7
+    const timeNow = nowWIB.toTimeString().slice(0, 8); // HH:MM:SS
+    const today = nowWIB.toISOString().slice(0, 10);   // YYYY-MM-DD
 
     // ⏰ Validasi waktu hanya kalau otomatis aktif dan manual tidak aktif
     if (setting.status_otomatis && !setting.status_manual) {
@@ -110,6 +112,7 @@ router.post("/absen-siswa", async (req, res) => {
       absenmasuk: timeNow,
     });
 
+    // 🔔 Kirim notifikasi absen masuk
     const pesan = `📢 Halo, anak Anda *${student.name}* telah absen *masuk* pada pukul ${timeNow}.`;
     await kirimWhatsapp(student.no_wa_ortu, pesan);
 
@@ -126,6 +129,7 @@ router.post("/absen-siswa", async (req, res) => {
     });
   }
 });
+
 
 router.use(authMiddleware);
 router.use(authorize('admin', 'operator'));
