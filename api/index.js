@@ -13,7 +13,6 @@ const kelasRoute = require("./routes/kelas");
 const waktuMiddleware = require('./middleware/waktu');
 
 
-
 app.use(waktuMiddleware);
 app.use(cors());
 app.use(express.json());
