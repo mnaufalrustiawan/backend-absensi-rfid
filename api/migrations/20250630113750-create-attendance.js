@@ -16,7 +16,7 @@ module.exports = {
         type: Sequelize.DATEONLY
       },
       status:{
-        type: Sequelize.ENUM('hadir','terlambat', 'izin', 'alpha'),
+        type: Sequelize.ENUM('hadir', 'izin', 'alpha'),
         defaultValue: 'alpha',
       },
       status_absen: {

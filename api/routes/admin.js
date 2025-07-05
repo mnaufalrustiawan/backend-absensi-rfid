@@ -21,6 +21,17 @@ router.get("/admin/semua-absen", async (req,res) =>{
     res.status(200).json(attendance);
 });
 
+router.delete("/admin/hapus-semua-absen", async (req, res) => {
+  try{
+
+    const attandance = await Attendance.destroy({ where: {}, force: true });
+    res.status(200).json(attandance);
+  }catch(err) {
+    console.error("Hapus semua absen error:", err);
+    res.status(500).json({ message: "Gagal menghapus semua absen", error: err.message });
+  }
+});
+
 
 
 router.get("/admin/export-excel", async (req, res) => {

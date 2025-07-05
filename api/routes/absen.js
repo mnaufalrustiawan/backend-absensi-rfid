@@ -4,6 +4,7 @@ const { Attendance, Student, Setting } = require("../models");
 const { authMiddleware, authorize } = require("../middleware/auth");
 const axios = require("axios");
 const FormData = require("form-data");
+const attendance = require("../models/attendance");
 
 
 const WHAPIFY_URL = "https://whapify.id/api/send/whatsapp";
@@ -71,10 +72,9 @@ router.post("/absen-siswa", async (req, res) => {
       },
     });
     
-
-    // 🔁 Jika sudah absen masuk → proses absen keluar
-    if (existingAttendance ) {
+    if (existingAttendance) {
       if (existingAttendance.status_absen === "absenmasuk") {
+        // 🕒 Validasi waktu absen pulang
         if (timeNow < jamkeluar && !setting.status_manual) {
           return res.status(400).json({ message: "Belum waktunya absen pulang." });
         }
@@ -87,7 +87,6 @@ router.post("/absen-siswa", async (req, res) => {
         existingAttendance.absenkeluar = timeNow;
         await existingAttendance.save();
 
-        // 🔔 Notifikasi pulang
         const pesan = `📢 Halo, anak Anda *${student.name}* telah absen *pulang* pada pukul ${timeNow}.`;
         await kirimWhatsapp(student.no_wa_ortu, pesan);
 
@@ -97,41 +96,39 @@ router.post("/absen-siswa", async (req, res) => {
         });
       }
 
-      // ✅ Sudah absen lengkap
+      // 👇 Kalau status_absen masih null → proses sebagai absen masuk
+      if (!existingAttendance.status_absen || existingAttendance.status_absen === "alpha") {
+        if (timeNow > batasabsenmasuk && !setting.status_manual) {
+          return res.status(400).json({ message: "Sudah melewati batas waktu absen masuk." });
+        }
+
+        existingAttendance.status = "hadir";
+        existingAttendance.keterangan = "hadir";
+        existingAttendance.status_absen = "absenmasuk";
+        existingAttendance.absenmasuk = timeNow;
+        await existingAttendance.save();
+
+        if (timeNow > setting.jam_masuk) {
+          const pesan = `📢 Halo, anak Anda *${student.name}* terlambat absen *masuk* pada pukul ${timeNow}.`;
+          await kirimWhatsapp(student.no_wa_ortu, pesan);
+          return res.status(200).json({
+            message: `${student.name} terlambat absen masuk.`,
+            attendance: existingAttendance,
+          });
+        }
+
+        const pesan = `📢 Halo, anak Anda *${student.name}* telah absen *masuk* pada pukul ${timeNow}.`;
+        await kirimWhatsapp(student.no_wa_ortu, pesan);
+        return res.status(200).json({
+          message: `${student.name} berhasil absen masuk.`,
+          attendance: existingAttendance,
+        });
+      }
+
+      // ✅ Sudah lengkap
       return res.status(400).json({ message: "Siswa sudah absen lengkap hari ini." });
     }
 
-    // ❌ Cek apakah sudah lewat batas absen masuk
-    if (timeNow > batasabsenmasuk && !setting.status_manual) {
-      return res.status(400).json({ message: "Sudah melewati batas waktu absen masuk." });
-    }
-
-    // ➕ Catat absen masuk
-    const newAttendance = await Attendance.create({
-      studentId: student.id,
-      date: today,
-      status: "hadir",
-      keterangan: "hadir",
-      status_absen: "absenmasuk",
-      absenmasuk: timeNow,
-    });
-
-    // 🔔 Notifikasi masuk
-    if (timeNow > setting.jam_masuk) {
-      const pesan = `📢 Halo, anak Anda *${student.name}* terlambat absen *masuk* pada pukul ${timeNow}.`;
-      await kirimWhatsapp(student.no_wa_ortu, pesan);
-      return res.status(201).json({
-        message: `${student.name} terlambat absen masuk.`,
-        attendance: newAttendance,
-      });
-    }
-
-    const pesan = `📢 Halo, anak Anda *${student.name}* telah absen *masuk* pada pukul ${timeNow}.`;
-    await kirimWhatsapp(student.no_wa_ortu, pesan);
-    return res.status(201).json({
-      message: `${student.name} berhasil absen masuk.`,
-      attendance: newAttendance,
-    });
 
   } catch (err) {
     console.error("Error absen:", err);
@@ -168,6 +165,7 @@ router.post("/generate-absen-harian", async (req, res) => {
     const newAttendances = studentsToCreate.map((student) => ({
       studentId: student.id,
       date: today,
+      status: "alpha",
       keterangan: "alpha",
     }));
 
