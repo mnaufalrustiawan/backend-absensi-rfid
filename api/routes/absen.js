@@ -70,16 +70,15 @@ router.post("/absen-siswa", async (req, res) => {
         date: today,
       },
     });
-
+    
 
     // 🔁 Jika sudah absen masuk → proses absen keluar
-    if (existingAttendance) {
+    if (existingAttendance ) {
       if (existingAttendance.status_absen === "absenmasuk") {
-        console.log("✅ timeNow:", timeNow);
-        if (timeNow < jamkeluar) {
+        if (timeNow < jamkeluar && !setting.status_manual) {
           return res.status(400).json({ message: "Belum waktunya absen pulang." });
         }
-        if (timeNow > batasabsenkeluar) {
+        if (timeNow > batasabsenkeluar && !setting.status_manual) {
           return res.status(400).json({ message: "Waktu absen pulang telah berakhir." });
         }
 
@@ -103,7 +102,7 @@ router.post("/absen-siswa", async (req, res) => {
     }
 
     // ❌ Cek apakah sudah lewat batas absen masuk
-    if (timeNow > batasabsenmasuk) {
+    if (timeNow > batasabsenmasuk && !setting.status_manual) {
       return res.status(400).json({ message: "Sudah melewati batas waktu absen masuk." });
     }
 
