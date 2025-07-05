@@ -69,7 +69,7 @@ router.post("/absen-siswa", async (req, res) => {
       if (timeNow < jamkeluar && !setting.status_manual) return res.status(400).json({ message: "Belum waktunya absen masuk." });
       if (timeNow > batasabsenmasuk && !setting.status_manual) return res.status(400).json({ message: "Waktu absen masuk telah berakhir." });
 
-      const newAttendance = await Attendance.create({ studentId: student.id, date: today, status: "hadir", status_absen: "absenmasuk", absenmasuk: timeNow });
+      const newAttendance = await Attendance.create({ studentId: student.id, date: today, status: "hadir", status_absen: "absenmasuk", absenmasuk: timeNow, keterangan: "hadir" });
       await kirimWhatsapp(student.no_wa_ortu, `Halo, anak Anda *${student.name}* telah absen *masuk* pada pukul ${timeNow}.`);
       return res.status(200).json({ message: `${student.name} berhasil absen masuk.`, attendance: newAttendance });
     }
