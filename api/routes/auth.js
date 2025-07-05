@@ -4,8 +4,38 @@ const { User } = require("../models");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
-
-router.post("/login", async (req, res) => {
+router.post("/login", async function (req, res) {
+  /*
+    #swagger.tags = ['Auth']
+    #swagger.description = 'Login untuk admin'
+    #swagger.parameters['body'] = {
+      in: 'body',
+      required: true,
+      schema: {
+        $email: "admin@email.com",
+        $password: "password123"
+      }
+    }
+    #swagger.responses[200] = {
+      description: "Login berhasil",
+      schema: {
+        token: "jwt.token.here",
+        admin: {
+          name: "Admin Name",
+          email: "admin@email.com"
+        }
+      }
+    }
+    #swagger.responses[404] = {
+      description: "Admin tidak ditemukan"
+    }
+    #swagger.responses[401] = {
+      description: "Password salah"
+    }
+    #swagger.responses[500] = {
+      description: "Gagal login"
+    }
+  */
   const { email, password } = req.body;
 
   try {
