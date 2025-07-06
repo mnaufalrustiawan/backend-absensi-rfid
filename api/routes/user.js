@@ -7,7 +7,7 @@ const bcrypt = require("bcryptjs");
 router.use(authMiddleware);
 router.use(authorize("admin"));
 
-router.get("/user", async (req, res) => {
+router.get("/semua-user", async (req, res) => {
 
   const users = await User.findAll();
   res.status(200).json(users);
@@ -59,7 +59,7 @@ router.route("/user")
     if (passwordbaru) {
       const isMatch = await bcrypt.compare(passwordsebelumnya, user.password);
       if (!isMatch) {
-        return res.status(401).json({ message: "Password salah" });
+        return res.status(400).json({ message: "Password sebelumnya salah" });
       }
       user.password = bcrypt.hashSync(passwordbaru, 10);
     }
