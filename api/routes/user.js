@@ -13,7 +13,24 @@ router.get("/semua-user", async (req, res) => {
   res.status(200).json(users);
 });
 
-router.post("/tambah-user", async function (req, res) {
+router.route("/user")
+.get( async (req, res) => {
+  try{
+    const {id} = req.query;
+    const user = await User.findByPk(id);
+    if(!user) {
+      return res.status(404).json({ message: "User tidak ditemukan" });
+    }
+
+    
+    res.status(200).json(user);
+
+  }catch (err) {
+    res.status(500).json({ message: "Gagal mendapatkan user", error: err.message });
+  }
+})
+
+.post( async (req, res) => {
 
   const { name, email, password, role } = req.body;
   const existingUser = await User.findOne({ where: { email } });
@@ -22,9 +39,11 @@ router.post("/tambah-user", async function (req, res) {
   }
   const user = await User.create({ name, email, password, role });
   res.status(201).json(user);
-});
+})
 
-router.put("/edit-user", async function (req, res) {
+
+
+.put( async (req, res) => {
 
   try {
     const { id } = req.query;
@@ -50,6 +69,24 @@ router.put("/edit-user", async function (req, res) {
   } catch (err) {
     res.status(500).json({ message: "Gagal edit user", eror: err.message });
   }
+})
+
+.delete( async (req, res) => {
+  try {
+    const {id} = req.query;
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ message: "User tidak ditemukan" });
+    }
+
+    await user.destroy();
+    res.status(200).json({ message: "User berhasil dihapus" });
+
+  }catch(err) {
+    res.status(500).json({ message: "Gagal hapus user", error: err.message });
+  }
 });
+
+
 
 module.exports = router;
