@@ -7,13 +7,19 @@ const bcrypt = require("bcryptjs");
 router.use(authMiddleware);
 router.use(authorize("admin"));
 
-router.get("/semua-user", async (req, res) => {
 
-  const users = await User.findAll();
-  res.status(200).json(users);
-});
 
 router.route("/user")
+.get (async (req, res) => {
+
+  try {
+    const users = await User.findAll();
+    res.status(200).json(users);
+  } catch (err) {
+    res.status(500).json({ message: "Gagal mendapatkan user", error: err.message });
+  }
+})
+
 .get( async (req, res) => {
   try{
     const {id} = req.query;
