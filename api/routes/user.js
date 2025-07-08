@@ -13,10 +13,22 @@ router.get("/semua-user", async (req, res) => {
   res.status(200).json(users);
 });
 
-router.route("/user")
+router.post("/user", async (req, res) => {
+
+  const { name, email, password, role } = req.body;
+  const existingUser = await User.findOne({ where: { email } });
+  if (existingUser) {
+    return res.status(400).json({ message: "Email sudah digunakan" });
+  }
+  const user = await User.create({ name, email, password, role });
+  res.status(201).json(user);
+})
+
+
+router.route("/user/:id")
 .get( async (req, res) => {
   try{
-    const {id} = req.query;
+    const {id} = req.params;
     const user = await User.findByPk(id);
     if(!user) {
       return res.status(404).json({ message: "User tidak ditemukan" });
@@ -30,23 +42,14 @@ router.route("/user")
   }
 })
 
-.post( async (req, res) => {
 
-  const { name, email, password, role } = req.body;
-  const existingUser = await User.findOne({ where: { email } });
-  if (existingUser) {
-    return res.status(400).json({ message: "Email sudah digunakan" });
-  }
-  const user = await User.create({ name, email, password, role });
-  res.status(201).json(user);
-})
 
 
 
 .put( async (req, res) => {
 
   try {
-    const { id } = req.query;
+    const { id } = req.params;
     const { name, email, passwordbaru, passwordsebelumnya } = req.body;
     const user = await User.findByPk(id);
     if (!user) {
@@ -73,7 +76,7 @@ router.route("/user")
 
 .delete( async (req, res) => {
   try {
-    const {id} = req.query;
+    const {id} = req.params;
     const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json({ message: "User tidak ditemukan" });
